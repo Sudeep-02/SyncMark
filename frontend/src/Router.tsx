@@ -1,10 +1,10 @@
 // src/router.tsx
 import { createBrowserRouter } from "react-router-dom";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Tags from "./pages/Tags";
-import Folders from "./pages/Folders";
+import Login from "./pages/login/Login";
+import Register from "./pages/signup/Register";
+import Dashboard from "./pages/dashboard/Dashboard";
+import Tags from "./components/dashboard/Tags";
+import Folders from "./components/dashboard/Folders";
 import RequireAuth from "./auth/RequireAuth";
 import AppLayout from "./layouts/AppLayout";
 

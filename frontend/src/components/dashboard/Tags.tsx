@@ -1,4 +1,4 @@
-import { useGetTagsQuery } from "../api/tag.api";
+import { useGetTagsQuery } from "../../api/tag.api";
 
 export default function Tags() {
   const { data, isLoading } = useGetTagsQuery();

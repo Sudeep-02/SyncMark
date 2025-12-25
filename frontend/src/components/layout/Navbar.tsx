@@ -1,5 +1,5 @@
-import { useAppDispatch } from "../app/hooks";
-import { logout } from "../auth/authSlice";
+import { useAppDispatch } from "../../app/hooks";
+import { logout } from "../../auth/authSlice";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Navbar() {

@@ -1,5 +1,5 @@
-import { useGetBookmarksQuery } from "../api/bookmark.api";
-import BookmarkCard from "../components/BookmarkCard";
+import { useGetBookmarksQuery } from "../../api/bookmark.api";
+import BookmarkCard from "../../components/layout/BookmarkCard";
 
 export default function Dashboard() {
   const { data, isLoading, error } = useGetBookmarksQuery();

@@ -1,4 +1,4 @@
-import type { Bookmark } from "../packages/shared/types/bookmark";
+import type { Bookmark } from "../../packages/shared/types/bookmark";
 
 export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
   return (

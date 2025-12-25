@@ -1,5 +1,5 @@
 // pages/Folders.tsx
-import { useGetFoldersQuery } from "../api/folder.api";
+import { useGetFoldersQuery } from "../../api/folder.api";
 
 export default function Folders() {
   const { data } = useGetFoldersQuery();
