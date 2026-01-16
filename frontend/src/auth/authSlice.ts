@@ -1,14 +1,16 @@
-// auth/authSlice.ts
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
+
 interface AuthState {
   user: { id: string; email: string } | null;
   accessToken: string | null;
+  isLoading: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
   accessToken: null,
+  isLoading: true,
 };
 
 const authSlice = createSlice({
@@ -21,10 +23,12 @@ const authSlice = createSlice({
     ) => {
       state.user = action.payload.user;
       state.accessToken = action.payload.accessToken;
+      state.isLoading = false;
     },
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
+      state.isLoading = false;
     },
   },
 });

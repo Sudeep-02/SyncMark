@@ -1,43 +1,26 @@
-// pages/Login.tsx
-import { useLoginMutation } from "../../api/auth.api";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { LoginForm } from "@/components/auth/login-form";
 
-export default function Login() {
-  const [login, { isLoading }] = useLoginMutation();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const navigate = useNavigate();
-
-  const submit = async () => {
-    await login({ email, password }).unwrap();
-    navigate("/dashboard");
-  };
-
+export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-sm bg-white p-6 rounded shadow">
-        <h1 className="text-xl font-semibold mb-4">Sign in</h1>
-
-        <input
-          className="w-full mb-3 p-2 border rounded"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <a href="#" className="flex items-center gap-2 font-medium">
+            Syncmark
+          </a>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <LoginForm />
+          </div>
+        </div>
+      </div>
+      <div className="bg-muted relative hidden lg:block">
+        <img
+          src="../../../assests/img/bg1.jpg"
+          alt="Image"
+          className="absolute inset-0 h-full w-full object-cover "
         />
-        <input
-          className="w-full mb-3 p-2 border rounded"
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button
-          onClick={submit}
-          disabled={isLoading}
-          className="w-full bg-accent text-white p-2 rounded"
-        >
-          {isLoading ? "Signing in..." : "Login"}
-        </button>
       </div>
     </div>
   );

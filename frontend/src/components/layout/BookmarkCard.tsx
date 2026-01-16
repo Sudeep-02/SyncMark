@@ -1,16 +1,37 @@
-import type { Bookmark } from "../../packages/shared/types/bookmark";
+import { Bookmark } from "@/packages/shared/types/bookmark";
+import { useToggleFeaturedMutation } from "@/api/bookmark.api";
+
+import { Card, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
+  const [toggleFeatured] = useToggleFeaturedMutation();
+
   return (
-    <div className="bg-white p-4 rounded shadow">
-      <h2 className="font-semibold">{bookmark.title}</h2>
-      <a
-        href={bookmark.url}
-        className="text-sm text-blue-600 break-all"
-        target="_blank"
-      >
-        {bookmark.url}
-      </a>
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="truncate font-medium">
+            {bookmark.title || bookmark.url}
+          </h3>
+          <p className="truncate text-sm text-muted-foreground">
+            {bookmark.url}
+          </p>
+        </div>
+
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() =>
+            toggleFeatured({
+              id: bookmark.id,
+              is_featured: !bookmark.is_featured,
+            })
+          }
+        >
+          {bookmark.is_featured ? "★" : "☆"}
+        </Button>
+      </CardHeader>
+    </Card>
   );
 }

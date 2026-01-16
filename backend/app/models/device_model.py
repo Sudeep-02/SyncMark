@@ -14,7 +14,7 @@ class Device(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id", index=True, nullable=False)
     device_name: Optional[str] = None
     last_sync_at: Optional[datetime] = None
-    last_known_revision: Optional[int] = None
+    last_known_revision: Optional[datetime] = None
     device_id: UUID = Field(index=True, unique=True, nullable=False)
     os: Optional[str] = None
     android_version : Optional[str] = None

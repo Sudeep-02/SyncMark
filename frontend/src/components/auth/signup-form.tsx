@@ -20,6 +20,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import type ApiError from "../../packages/shared/types/error";
 
 export function SignupForm({
   className,
@@ -30,23 +31,27 @@ export function SignupForm({
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password_hash, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const submit = async () => {
-    if (password !== confirmPassword) {
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (password_hash !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
 
     try {
-      await register({ username, email, password }).unwrap();
+      const res = await register({ email, username, password_hash }).unwrap();
+      console.log(res);
+
       navigate("/login");
     } catch (err) {
       const error = err as FetchBaseQueryError;
-      const message =
-        (error.data as any)?.message || "Unable to create account";
-      toast.error(message);
+      const data = error.data as ApiError | undefined;
+
+      toast.error(data?.detail ?? data?.message ?? "Unable to create account");
     }
   };
 

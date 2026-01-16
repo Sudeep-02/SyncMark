@@ -1,52 +1,83 @@
 # app/routes/bookmarks.py
 from fastapi import APIRouter, Depends, HTTPException, status,Header
 from sqlmodel import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID,uuid4
 
 from app.schemas.bookmark_schema import BookmarkCreate, BookmarkUpdate, BookmarkRead
 from app.core.database import get_session
-from app.services.bookmark_service import (
-    create_bookmark, list_user_bookmarks, get_user_bookmark,
-    update_bookmark, soft_delete_bookmark
-)
+from app.services.bookmark_service import BookmarkService
+
 from app.deps.auth import get_current_user
 
 router = APIRouter(prefix="/bookmarks", tags=["bookmarks"])
 
 @router.post("/", response_model=BookmarkRead, status_code=status.HTTP_201_CREATED)
-def create_bookmark_record(payload: BookmarkCreate, db: Session = Depends(get_session),
-                    current_user = Depends(get_current_user),device_id: UUID | None = Header(default=None)):
+def create_bookmark(payload: BookmarkCreate, db: Session = Depends(get_session),
+                    user_id = Depends(get_current_user),device_id: UUID = Header(..., alias="device-id")):
     
-    if device_id is None:
-        device_id = uuid4()
-        
-    bookmark_record = create_bookmark(db, current_user.id, payload, device_id,)
-    return bookmark_record
+   
+    return BookmarkService.create_bookmark(
+        db, user_id, payload, device_id
+    )
+
 
 @router.get("/", response_model=List[BookmarkRead])
-def read_bookmarks(db: Session = Depends(get_session), current_user = Depends(get_current_user)):
-    return list_user_bookmarks(db, current_user.id)
+def list_bookmarks(
+    featured: Optional[bool] = None,
+    folder_id: Optional[UUID] = None,
+    db: Session = Depends(get_session),
+    user_id: UUID = Depends(get_current_user),
+):
+    return BookmarkService.list_user_bookmarks(
+        db=db,
+        user_id=user_id,
+        featured=featured,
+        folder_id=folder_id,
+    )
 
 @router.get("/{bookmark_id}", response_model=BookmarkRead)
-def read_bookmark(bookmark_id: UUID, db: Session = Depends(get_session), current_user = Depends(get_current_user)):
-    record = get_user_bookmark(db, current_user.id, bookmark_id)
+def get_bookmark(
+    bookmark_id: UUID,
+    db: Session = Depends(get_session),
+    user_id: UUID = Depends(get_current_user),
+):
+    record = BookmarkService.get_user_bookmark(
+        db, user_id, bookmark_id
+    )
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bookmark not found")
     return record
 
+
+
 @router.patch("/{bookmark_id}", response_model=BookmarkRead)
-def patch_bookmark(bookmark_id: UUID, payload: BookmarkUpdate, db: Session = Depends(get_session), current_user = Depends(get_current_user)):
-    device_id = None
-    record = update_bookmark(db, current_user.id, bookmark_id, payload,device_id)
+def update_bookmark(
+    bookmark_id: UUID,
+    payload: BookmarkUpdate,
+    db: Session = Depends(get_session),
+    user_id: UUID = Depends(get_current_user),
+    device_id: UUID = Header(..., alias="device-id")
+):
+  
+    record = BookmarkService.update_bookmark(
+        db, user_id, bookmark_id, payload, device_id
+    )
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bookmark not found")
     return record
 
 @router.delete("/{bookmark_id}", status_code=status.HTTP_200_OK)
-def delete_bookmark(bookmark_id: UUID, db: Session = Depends(get_session), current_user = Depends(get_current_user)):
-    device_id = None
-    record = soft_delete_bookmark(db, current_user.id, bookmark_id, device_id)
+def delete_bookmark(
+    bookmark_id: UUID,
+    db: Session = Depends(get_session),
+    user_id: UUID = Depends(get_current_user),
+    device_id: UUID = Header(..., alias="device-id")
+):
+
+    record = BookmarkService.soft_delete_bookmark(
+        db, user_id, bookmark_id, device_id
+    )
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bookmark not found")
     return {"detail": "Bookmark soft-deleted"}

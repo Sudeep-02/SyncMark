@@ -1,23 +1,30 @@
+from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, Field
+from datetime import datetime
 
-class FolderCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
+
+class FolderBase(BaseModel):
+    name: str
     parent_id: Optional[UUID] = None
 
+
+class FolderCreate(FolderBase):
+    pass
+
+
 class FolderUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    parent_id: Optional[UUID] | None = None  # None means explicit set to top-level
+    name: Optional[str] = None
+    parent_id: Optional[UUID] = None
+
 
 class FolderRead(BaseModel):
     id: UUID
-    user_id: UUID
     name: str
     parent_id: Optional[UUID]
 
-   
-    
-model_config = {
-        "from_attributes": True 
-    }
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True

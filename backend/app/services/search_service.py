@@ -1,15 +1,13 @@
 from typing import List, Optional, Tuple
 from uuid import UUID
-
 from sqlmodel import Session, select
-from sqlalchemy import func, text
-from sqlalchemy import cast, func
-from sqlalchemy.types import Uuid
+from sqlalchemy import func, text, cast
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
 from app.models.bookmark_model import Bookmark
 from app.models.tag_model import BookmarkTagLink
 from app.schemas.search_schema import BookmarkResult
-from sqlalchemy import cast
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
 
 def search_bookmarks(
     db: Session,
@@ -22,13 +20,11 @@ def search_bookmarks(
     offset: int = 0,
 ) -> Tuple[int, List[BookmarkResult]]:
 
-    # Base query
     stmt = select(Bookmark).where(Bookmark.user_id == user_id)
 
     if not include_deleted:
-        stmt = stmt.where(Bookmark.deleted_at == None) 
+        stmt = stmt.where(Bookmark.deleted_at.is_(None)) # type: ignore
 
-    # Full-text search (PostgreSQL)
     if query:
         stmt = stmt.where(
             text(
@@ -39,54 +35,44 @@ def search_bookmarks(
             )
         ).params(q=query)
 
-    # Folder filter
-    
     if folder_ids:
         stmt = stmt.where(
             cast(Bookmark.folder_id, PG_UUID).in_(folder_ids)
         )
 
-
-    # Tag filter (bookmarks must have ALL tags)
     if tag_ids:
         stmt = (
             stmt.join(
                 BookmarkTagLink,
-                cast(Bookmark.id, Uuid) == cast(BookmarkTagLink.bookmark_id, Uuid),
+                Bookmark.id == BookmarkTagLink.bookmark_id # type: ignore
             )
-            .where(cast(BookmarkTagLink.tag_id, Uuid).in_(tag_ids))
-            .group_by(cast(Bookmark.id, Uuid))
-            .having(
-                func.count(func.distinct(cast(BookmarkTagLink.tag_id, Uuid)))
-                == len(tag_ids)
-            )
+            .where(BookmarkTagLink.tag_id.in_(tag_ids)) # type: ignore
+            .group_by(Bookmark.id) # type: ignore
+            .having(func.count() == len(tag_ids))
         )
 
-    # Total count
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = db.exec(count_stmt).one()
 
-    # Pagination
     stmt = stmt.offset(offset).limit(limit)
     bookmarks = db.exec(stmt).all()
 
-    results: List[BookmarkResult] = []
-
+    results = []
     for b in bookmarks:
         tag_stmt = select(BookmarkTagLink.tag_id).where(
             BookmarkTagLink.bookmark_id == b.id
         )
-        tag_ids_list = list(db.exec(tag_stmt).all())
+        tags = list(db.exec(tag_stmt).all())
 
         results.append(
             BookmarkResult(
                 id=b.id,
+                url=b.url,
                 title=b.title or "",
-                url=b.url or "",
                 description=b.description,
                 favicon_url=b.favicon_url,
                 folder_id=b.folder_id,
-                tag_ids=list(tag_ids_list),
+                tag_ids=tags,
             )
         )
 

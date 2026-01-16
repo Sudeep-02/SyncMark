@@ -1,188 +1,226 @@
-from typing import Optional, Sequence
 from uuid import UUID
 from datetime import datetime, timezone
-from app.models.folder_model import Folder
-from sqlmodel import Session, select,col
-from fastapi import HTTPException, status
-from sqlalchemy import delete
+from typing import Optional, Sequence
+
+from fastapi import HTTPException
+from sqlmodel import Session, select, delete
+
 from app.models.bookmark_model import Bookmark
-from app.models.tag_model import BookmarkTagLink,Tag
-from app.schemas.bookmark_schema import BookmarkCreate, BookmarkUpdate
+from app.models.folder_model import Folder
+from app.models.device_model import Device
+from app.models.tag_model import BookmarkTagLink
+from app.services.tag_service import TagService
+from app.tasks.bookmark_tasks import fetch_metadata
 
 
-def validate_tag_ids_exist(db: Session, tag_ids: Optional[list[UUID]]):
-    if not tag_ids:
-        return
+def utc_now():
+    return datetime.now(timezone.utc)
 
-    # Select column
-    stmt = select(Tag.id).where(Tag.id.in_(tag_ids)) # type: ignore
-    existing_ids = set(db.exec(stmt).all())  
 
-    missing = set(tag_ids) - existing_ids
-    if missing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid tag IDs: {missing}"
+class BookmarkService:
+
+    # ---------- READ ----------
+
+    @staticmethod
+    def list_user_bookmarks(
+        db: Session,
+        user_id: UUID,
+        include_deleted: bool = False,
+        featured: Optional[bool] = None,
+        folder_id: Optional[UUID] = None,
+    ) -> Sequence[Bookmark]:
+        print(user_id)
+        statement = select(Bookmark).where(Bookmark.user_id == user_id)
+
+        if not include_deleted:
+            statement = statement.where(Bookmark.deleted_at.is_(None)) # type: ignore
+
+        if featured is not None:
+            statement = statement.where(Bookmark.is_featured == featured)
+
+        if folder_id is not None:
+            statement = statement.where(Bookmark.folder_id == folder_id)
+
+        return db.exec(statement).all()
+
+    @staticmethod
+    def get_user_bookmark(
+        db: Session,
+        user_id: UUID,
+        bookmark_id: UUID,
+    ) -> Bookmark:
+
+        bookmark = db.get(Bookmark, bookmark_id)
+
+        if (
+            not bookmark
+            or bookmark.user_id != user_id
+            or bookmark.deleted_at is not None
+        ):
+            raise HTTPException(status_code=404, detail="Bookmark not found")
+
+        return bookmark
+
+    # ---------- CREATE ----------
+
+    @staticmethod
+    def create_bookmark(
+        db: Session,
+        user_id: UUID,
+        payload,
+        device_id: UUID,
+    ) -> Bookmark:
+      
+            
+        device = db.exec(
+            select(Device).where(
+                Device.device_id == device_id,
+                Device.user_id == user_id
+            )
+        ).first()
+        
+        
+        if device is None:
+            print(device)
+            raise HTTPException(status_code=401, detail="Invalid device")
+
+        if payload.folder_id:
+            folder = db.get(Folder, payload.folder_id)
+            if not folder or folder.user_id != user_id:
+                raise HTTPException(status_code=403, detail="Invalid folder")
+
+        TagService.validate_ids(db, user_id, payload.tag_ids)
+
+        bookmark = Bookmark(
+            user_id=user_id,
+            url=str(payload.url),
+            title=payload.title,
+            description=payload.description,
+            favicon_url=str(payload.favicon_url) if payload.favicon_url else None,
+            folder_id=payload.folder_id,
+            is_featured=payload.is_featured or False,
+            version=1,
+            last_modified_device=device_id,
+            updated_at=utc_now(),
         )
 
-
-def create_bookmark(
-    db: Session,
-    user_id: UUID,
-    payload: BookmarkCreate,
-    device_id: Optional[UUID] = None
-) -> Bookmark:
-    try:
-        # Validate folder
-        folder_id = getattr(payload, "folder_id", None)
-        if folder_id is not None:
-            folder = db.get(Folder, folder_id)
-            if not folder:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
-            if folder.user_id != user_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Folder does not belong to user")
-
-        # Validate tags
-        validate_tag_ids_exist(db, payload.tag_ids)
-
-        # Prepare bookmark data
-        data = payload.model_dump(exclude_unset=True)
-        data["user_id"] = user_id
-        if device_id:
-            data["last_modified_device"] = device_id
-
-        # Convert HttpUrl fields to string
-        if "url" in data and data["url"] is not None:
-            data["url"] = str(data["url"])
-        if "favicon_url" in data and data["favicon_url"] is not None:
-            data["favicon_url"] = str(data["favicon_url"])
-
-        # Create bookmark
-        bookmark = Bookmark(**data)
+        # Atomic DB write
         db.add(bookmark)
-        db.commit()
+        print("validated device.device_id:", device.device_id)
+        print("used last_modified_device:", device_id)
+
+        db.flush() # temporary commit for getting bookmark.id
+        
+
+        for tag_id in payload.tag_ids or []:
+            db.add(
+                BookmarkTagLink(
+                    bookmark_id=bookmark.id,
+                    tag_id=tag_id,
+                )
+            )
+        db.commit() 
         db.refresh(bookmark)
 
-        # Link tags
-        for tag_id in payload.tag_ids or []:
-            db.add(BookmarkTagLink(bookmark_id=bookmark.id, tag_id=tag_id))
-        if payload.tag_ids:
-            db.commit()
+        # Post-commit async task
+        fetch_metadata.delay(str(bookmark.id))
 
         return bookmark
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create bookmark: {str(e)}")
+    # ---------- UPDATE ----------
 
+    @staticmethod
+    def update_bookmark(
+        db: Session,
+        user_id: UUID,
+        bookmark_id: UUID,
+        payload,
+        device_id: UUID,
+    ) -> Bookmark:
 
+        bookmark = BookmarkService.get_user_bookmark(db, user_id, bookmark_id)
+        if not bookmark:
+            raise HTTPException(status_code=404, detail="Bookmark not found")
 
-def list_user_bookmarks(
-    db: Session,
-    user_id: UUID,
-    include_deleted: bool = False
-) -> Sequence[Bookmark]:
-    stmt = select(Bookmark).where(Bookmark.user_id == user_id)
-    if not include_deleted:
-        stmt = stmt.where(Bookmark.deleted_at.is_(None)) # type: ignore
-    return db.exec(stmt).all()
+        device = db.exec(
+            select(Device).where(
+                Device.device_id == device_id,
+                Device.user_id == user_id
+            )
+        ).first()
 
+        if not device:
+            raise HTTPException(status_code=401, detail="Invalid device")
 
-
-def get_user_bookmark(
-    db: Session,
-    user_id: UUID,
-    bookmark_id: UUID
-) -> Bookmark:
-    bookmark = db.get(Bookmark, bookmark_id)
-    if not bookmark:
-        raise HTTPException(status_code=404, detail="Bookmark not found")
-    if bookmark.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Forbidden: Not your bookmark")
-    if bookmark.deleted_at:
-        raise HTTPException(status_code=404, detail="Bookmark was deleted")
-    return bookmark
-
-
-def update_bookmark(
-    db: Session,
-    user_id: UUID,
-    bookmark_id: UUID,
-    payload: BookmarkUpdate,
-    device_id: Optional[UUID] = None
-) -> Bookmark:
-    # Fetch bookmark and ensure it belongs to the user
-    bookmark = get_user_bookmark(db, user_id, bookmark_id)
-
-    try:
         update_data = payload.model_dump(exclude_unset=True)
 
-        # Inline folder validation
-        folder_id = update_data.get("folder_id")
-        if folder_id is not None:
-            folder = db.get(Folder, folder_id)
-            if not folder:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
-            if folder.user_id != user_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Folder does not belong to user")
+        if "folder_id" in update_data and update_data["folder_id"] is not None:
+            folder = db.get(Folder, update_data["folder_id"])
+            if not folder or folder.user_id != user_id:
+                raise HTTPException(status_code=403, detail="Invalid folder")
 
-        # Validate tags
-        tag_ids = update_data.get("tag_ids")
-        if tag_ids is not None:
-            validate_tag_ids_exist(db, tag_ids)
+        if "tag_ids" in update_data:
+            TagService.validate_ids(db, user_id, update_data["tag_ids"])
 
-        # Update bookmark fields
-        for field_name, value in update_data.items():
-            if field_name == "tag_ids":
-                continue
-            setattr(bookmark, field_name, value)
+        for field, value in update_data.items():
+            if field != "tag_ids":
+                setattr(bookmark, field, value)
 
-        # Update last_modified_device if provided
-        if device_id:
-            bookmark.last_modified_device = device_id
+        bookmark.version += 1
+        bookmark.updated_at = utc_now()
+        bookmark.last_modified_device = device.device_id
 
-        db.add(bookmark)
+        if "tag_ids" in update_data:
+            db.execute(
+                delete(BookmarkTagLink).where(
+                    BookmarkTagLink.bookmark_id == bookmark.id # type: ignore
+                )
+            )
+            for tag_id in update_data["tag_ids"]:
+                db.add(
+                    BookmarkTagLink(
+                        bookmark_id=bookmark.id,
+                        tag_id=tag_id
+                    )
+                )
+
         db.commit()
         db.refresh(bookmark)
 
-        # Update tags if provided
-        if tag_ids is not None:
-            # Remove existing tag links
-            stmt = delete(BookmarkTagLink).where(col(BookmarkTagLink.bookmark_id) == bookmark.id)
-            # Add new tag links
-            for tag_id in tag_ids:
-                db.add(BookmarkTagLink(bookmark_id=bookmark.id, tag_id=tag_id))
-            db.commit()
+        if "url" in update_data:
+            fetch_metadata.delay(str(bookmark.id))
 
         return bookmark
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to update bookmark: {str(e)}")
+    # ---------- DELETE ----------
 
+    @staticmethod
+    def soft_delete_bookmark(
+        db: Session,
+        user_id: UUID,
+        bookmark_id: UUID,
+        device_id: UUID,
+    ) -> Bookmark:
 
-def soft_delete_bookmark(
-    db: Session,
-    user_id: UUID,
-    bookmark_id: UUID,
-    device_id: Optional[UUID] = None
-) -> Bookmark:
-    bookmark = get_user_bookmark(db, user_id, bookmark_id)
+        bookmark = BookmarkService.get_user_bookmark(db, user_id, bookmark_id)
+        
+        device = db.exec(
+            select(Device).where(
+                Device.device_id == device_id,
+                Device.user_id == user_id
+            )
+        ).first()
 
-    try:
-        bookmark.deleted_at = datetime.now(timezone.utc)
-        if device_id:
-            bookmark.last_modified_device = device_id
+        if not device:
+            raise HTTPException(status_code=401, detail="Invalid device")
 
-        db.add(bookmark)
+        bookmark.deleted_at = utc_now()
+        bookmark.deleted_by_device = device_id
+        bookmark.version += 1
+        bookmark.last_modified_device = device_id
+        bookmark.updated_at = utc_now()
+
         db.commit()
         db.refresh(bookmark)
-        return bookmark
 
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete bookmark: {str(e)}")
+        return bookmark
