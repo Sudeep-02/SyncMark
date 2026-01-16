@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/sidebar7/component/app-sidebar";
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,8 +22,7 @@ export default function DashboardPage() {
       <AppSidebar />
 
       <SidebarInset>
-        {/* Header */}
-        <header className="flex h-16 shrink-0 items-center gap-2">
+        <header className="flex h-16 items-center gap-2">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="h-4" />
@@ -42,22 +41,7 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Content */}
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          {/* Overview cards */}
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="rounded-xl border p-6 text-center text-muted-foreground">
-              All Bookmarks
-            </div>
-            <div className="rounded-xl border p-6 text-center text-muted-foreground">
-              Featured
-            </div>
-            <div className="rounded-xl border p-6 text-center text-muted-foreground">
-              Collections
-            </div>
-          </div>
-
-          {/* Main content */}
+        <div className="flex flex-1 flex-col p-4 pt-0">
           <div className="flex-1 rounded-xl border bg-background">
             <DashboardBookmarks />
           </div>

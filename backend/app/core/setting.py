@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     REFRESH_SECRET:str
     ALGORITHM:str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 min
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 30 min
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     
     # Redis

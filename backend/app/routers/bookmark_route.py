@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status,Header
 from sqlmodel import Session
 from typing import List, Optional
 from uuid import UUID,uuid4
-
+from app.deps.device import get_device_id
 from app.schemas.bookmark_schema import BookmarkCreate, BookmarkUpdate, BookmarkRead
 from app.core.database import get_session
 from app.services.bookmark_service import BookmarkService
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/bookmarks", tags=["bookmarks"])
 
 @router.post("/", response_model=BookmarkRead, status_code=status.HTTP_201_CREATED)
 def create_bookmark(payload: BookmarkCreate, db: Session = Depends(get_session),
-                    user_id = Depends(get_current_user),device_id: UUID = Header(..., alias="device-id")):
+                    user_id = Depends(get_current_user),device_id: UUID = Depends(get_device_id)):
     
    
     return BookmarkService.create_bookmark(
@@ -57,7 +57,7 @@ def update_bookmark(
     payload: BookmarkUpdate,
     db: Session = Depends(get_session),
     user_id: UUID = Depends(get_current_user),
-    device_id: UUID = Header(..., alias="device-id")
+    device_id: UUID = Depends(get_device_id)
 ):
   
     record = BookmarkService.update_bookmark(
@@ -72,7 +72,7 @@ def delete_bookmark(
     bookmark_id: UUID,
     db: Session = Depends(get_session),
     user_id: UUID = Depends(get_current_user),
-    device_id: UUID = Header(..., alias="device-id")
+    device_id: UUID = Depends(get_device_id)
 ):
 
     record = BookmarkService.soft_delete_bookmark(

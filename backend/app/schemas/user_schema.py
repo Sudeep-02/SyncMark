@@ -28,7 +28,7 @@ class UserUpdate(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-    device_id: UUID  # remove optional when working with frontend and same for below
+    # device_id: UUID  # remove optional when working with frontend and same for below
     os:Optional[str] = None
     android_version: Optional[str] = None
 

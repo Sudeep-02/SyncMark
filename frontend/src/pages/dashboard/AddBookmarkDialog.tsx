@@ -10,22 +10,22 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
-export default function AddBookmarkDialog() {
+export default function AddBookmarkDialog({ folderId }: { folderId?: string }) {
   const [createBookmark, { isLoading }] = useCreateBookmarkMutation();
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
 
     await createBookmark({
-      title: String(form.get("title")),
-      url: String(form.get("url")),
+      title: String(formData.get("title")),
+      url: String(formData.get("url")),
+      folder_id: folderId,
       is_featured: false,
     });
 
-    e.currentTarget.reset();
+    event.currentTarget.reset();
   };
 
   return (
@@ -39,10 +39,9 @@ export default function AddBookmarkDialog() {
           <DialogTitle>Add Bookmark</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Input name="title" placeholder="Title" required />
           <Input name="url" placeholder="https://example.com" required />
-          <Textarea name="description" placeholder="Description (optional)" />
 
           <DialogFooter>
             <Button type="submit" disabled={isLoading}>

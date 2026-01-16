@@ -1,5 +1,5 @@
-import type { Bookmark } from "@/packages/shared/types/bookmark";
-import { useUpdateBookmarkMutation } from "../../api/bookmark.api";
+import { Bookmark } from "@/packages/shared/types/bookmark";
+import { useUpdateBookmarkMutation } from "@/api/bookmark.api";
 
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
   const [updateBookmark] = useUpdateBookmarkMutation();
 
-  const handleToggleFeatured = () => {
+  const toggleFeatured = () => {
     updateBookmark({
       bookmarkId: bookmark.id,
       payload: {
@@ -18,7 +18,7 @@ export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <CardHeader className="flex flex-row justify-between gap-4">
         <div className="min-w-0">
           <h3 className="truncate font-medium">
             {bookmark.title || bookmark.url}
@@ -28,7 +28,7 @@ export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
           </p>
         </div>
 
-        <Button size="icon" variant="ghost" onClick={handleToggleFeatured}>
+        <Button size="icon" variant="ghost" onClick={toggleFeatured}>
           {bookmark.is_featured ? "★" : "☆"}
         </Button>
       </CardHeader>

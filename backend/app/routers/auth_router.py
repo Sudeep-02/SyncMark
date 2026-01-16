@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 from datetime import datetime, timezone
 from app.models.device_model import Device
 from app.core.database import get_session
+from app.deps.device import get_device_id
 from app.schemas.user_schema import (
     UserCreate,
     LoginRequest,
@@ -39,6 +40,7 @@ def login(
     login_data: LoginRequest,
     request: Request,
     response: Response,
+    device_id: uuid.UUID = Depends(get_device_id),
     session: Session = Depends(get_session),
 ):
     try:
@@ -52,14 +54,10 @@ def login(
             )
 
         device_query = select(Device).where(
-            Device.device_id == login_data.device_id,
+            Device.device_id == device_id,
             Device.user_id == user.id,
         )
         existing_device = session.exec(device_query).first()
-
-        device_id = getattr(login_data, "device_id", None)
-        if device_id is None:
-            device_id = uuid.uuid4()
 
         if not existing_device:
             device = Device(
@@ -125,7 +123,7 @@ def login(
 def refresh_token(
     request: Request,
     response: Response,
-    device_id: uuid.UUID = Header(..., alias="device-id"),
+    device_id: uuid.UUID = Depends(get_device_id),
     refresh_token: str = Cookie(...),
     session: Session = Depends(get_session),
 ):
@@ -234,6 +232,7 @@ def reset_password(
 def get_me(
     access_token: str = Cookie(None),
     refresh_token: str = Cookie(None),
+    device_id: uuid.UUID = Depends(get_device_id),
     session: Session = Depends(get_session),
 ):
     if access_token:
