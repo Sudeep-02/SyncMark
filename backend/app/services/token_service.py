@@ -8,7 +8,7 @@ from uuid import UUID as UUIDType
 
 class TokenService:
     @staticmethod
-    def store_refresh_token(raw_encoded_token: str, meta: dict, user_agent: str | None, ip: str | None, session: Session, expires_at: datetime | None)-> RefreshToken:
+    def store_refresh_token(raw_encoded_token: str, meta: dict, user_agent: str | None, ip: str | None, session: Session, expires_at: datetime | None,device_id: UUIDType)-> RefreshToken:
         try:
             token_hash = hash_refresh_token(raw_encoded_token)
             
@@ -31,6 +31,7 @@ class TokenService:
                 ip_address=ip,
                 expires_at=expires_at,
                 revoked=False,
+                device_id=device_id
             )
             session.add(rt)
             session.commit()

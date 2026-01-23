@@ -16,40 +16,28 @@ import { Spinner } from "../ui/spinner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type ApiError from "../../packages/shared/types/error";
 import { toast } from "sonner";
-import { useGetMeQuery } from "../../api/auth.api";
-import { useEffect } from "react";
+// import { useGetMeQuery } from "../../api/auth.api";
+// import { useEffect } from "react";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
-  const { data: user } = useGetMeQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      console.log(user);
-
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
-
   const [login, { isLoading }] = useLoginMutation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const submit = async () => {
     try {
       const res = await login({ email, password }).unwrap();
-      console.log("this is from login ");
-      console.log(res);
       navigate("/");
+      // console.log("this is from login ");
+      // console.log(res);
     } catch (err) {
       const error = err as FetchBaseQueryError;
       const data = error.data as ApiError | undefined;
-      console.log(data?.detail);
+      // console.log(data?.detail);
 
       toast.error(data?.detail ?? "Invalid Credentials");
     }

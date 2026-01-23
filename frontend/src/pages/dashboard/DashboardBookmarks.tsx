@@ -9,10 +9,15 @@ import BookmarkCard from "@/components/layout/BookmarkCard";
 
 export default function DashboardBookmarks({
   folderId,
+  tagId,
 }: {
   folderId?: string;
+  tagId?: string;
 }) {
-  const queryParams = folderId ? { folder_id: folderId } : {};
+  const queryParams = {
+    ...(folderId && { folder_id: folderId }),
+    ...(tagId && { tag_id: tagId }),
+  };
 
   const {
     data: bookmarks,
@@ -29,7 +34,7 @@ export default function DashboardBookmarks({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col rounded-xl border bg-background">
       <div className="flex items-center justify-between p-4">
         <h2 className="text-lg font-semibold">Bookmarks</h2>
         <AddBookmarkDialog folderId={folderId} />

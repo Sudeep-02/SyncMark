@@ -5,7 +5,7 @@ import Dashboard from "./pages/dashboard/page";
 import Tags from "./components/dashboard/Tags";
 import Folders from "./components/dashboard/Folders";
 import RequireAuth from "./auth/RequireAuth";
-import AppLayout from "./layouts/AppLayout";
+// import AppLayout from "./layouts/AppLayout";
 
 export const router = createBrowserRouter([
   {

@@ -1,6 +1,6 @@
 # ...existing code...
 from fastapi import FastAPI
-from app.core.rate_limit import RateLimitMiddleware
+from app.middleware.ip_guard import IPGuardMiddleware
 from contextlib import asynccontextmanager
 from .core.database import init_db
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,12 +28,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,   # required if using cookies
-    allow_methods=["GET","POST","PATCH","DELETE","OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
     
 )
 
-app.add_middleware(RateLimitMiddleware)
+app.add_middleware(IPGuardMiddleware)
 
 # print("Creating database and tables...")
 # def create_db_and_tables():

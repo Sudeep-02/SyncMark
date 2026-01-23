@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from app.models.device_model import Device
 from app.core.database import get_session
 from app.deps.device import get_device_id
+from app.deps.login_rate_limit import login_rate_limit
+
 from app.schemas.user_schema import (
     UserCreate,
     LoginRequest,
@@ -35,7 +37,7 @@ def register(register_data: UserCreate, session: Session = Depends(get_session))
         raise
 
 
-@router.post("/login")
+@router.post("/login",dependencies=[Depends(login_rate_limit)])
 def login(
     login_data: LoginRequest,
     request: Request,
@@ -89,6 +91,7 @@ def login(
             ip=request.client.host if request.client else None,
             session=session,
             expires_at=token_meta["exp"],
+            device_id = device_id,
         )
 
         response.set_cookie(
@@ -124,52 +127,67 @@ def refresh_token(
     request: Request,
     response: Response,
     device_id: uuid.UUID = Depends(get_device_id),
-    refresh_token: str = Cookie(...),
+    refresh_token: str | None = Cookie(None),
     session: Session = Depends(get_session),
 ):
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
+    
     try:
-        refresh_payload = decode_refresh_token(refresh_token)
+        payload = decode_refresh_token(refresh_token)
 
         from uuid import UUID
 
-        user_id_str = refresh_payload.get("sub")
+        user_id_str = payload.get("sub")
         if not user_id_str:
-            raise HTTPException(401, "Invalid refresh token")
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-        try:
-            user_uuid = UUID(user_id_str)
-        except (ValueError, TypeError):
-            raise HTTPException(400, "Invalid user id in token")
-
+        
         refresh_token_record = TokenService.validate_refresh_token(
             refresh_token, session
         )
 
-        new_encoded_refresh, new_token_meta = create_refresh_token_raw(user_id_str, device_id)
-
+        if refresh_token_record.device_id != device_id:
+            raise HTTPException(status_code=401, detail="Device mismatch")
+        
         TokenService.revoke_refresh_token_by_jti(
             refresh_token_record.jti, session
         )
 
+
+        new_refresh_token, new_meta = create_refresh_token_raw(user_id_str, device_id)
+
+        
         TokenService.store_refresh_token(
-            raw_encoded_token=new_encoded_refresh,
-            meta=new_token_meta,
+            raw_encoded_token=new_refresh_token,
+            meta=new_meta,
             user_agent=request.headers.get("user-agent"),
             ip=request.client.host if request.client else None,
             session=session,
-            expires_at=new_token_meta.get("exp"),
+            expires_at=new_meta.get("exp"),
+            device_id=device_id
         )
 
         response.set_cookie(
             key="refresh_token",
-            value=new_encoded_refresh,
+            value=new_refresh_token,
             httponly=True,
-            secure=False,
+            secure=False, # set True in prod (HTTPS)
             samesite="lax",
-            expires=new_token_meta["exp"],
+            expires=new_meta["exp"],
+            path="/",
         )
 
         new_access_token = create_access_token(user_id_str, device_id)
+        
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=False,      # set True in prod
+            samesite="lax",
+            path="/",
+        )
 
         return {"access_token": new_access_token}
 
@@ -231,34 +249,21 @@ def reset_password(
 @router.get("/me", response_model=UserOut)
 def get_me(
     access_token: str = Cookie(None),
-    refresh_token: str = Cookie(None),
-    device_id: uuid.UUID = Depends(get_device_id),
     session: Session = Depends(get_session),
 ):
-    if access_token:
-        try:
-            access_payload = decode_access_token(access_token)
-            user_id = access_payload.get("sub")
-
-            user = session.get(User, user_id)
-            if user and not user.is_deleted:
-                return user
-        except Exception:
-            pass
-
-    if not refresh_token:
+    if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        refresh_token_record = TokenService.validate_refresh_token(
-            refresh_token, session
-        )
-        user = session.get(User, refresh_token_record.user_id)
+        payload = decode_access_token(access_token)
+        user_id = payload.get("sub")
 
+        user = session.get(User, user_id)
         if not user or user.is_deleted:
             raise HTTPException(status_code=401, detail="User not found")
 
         return user
 
-    except HTTPException:
-        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    

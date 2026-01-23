@@ -23,7 +23,7 @@ export default function AddBookmarkDialog({ folderId }: { folderId?: string }) {
       url: String(formData.get("url")),
       folder_id: folderId,
       is_featured: false,
-    });
+    }).unwrap();
 
     event.currentTarget.reset();
   };
