@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status,Header
+from fastapi import APIRouter, Depends, HTTPException, status,Header,Response
 from sqlmodel import Session
 from typing import List, Optional
 from uuid import UUID,uuid4
@@ -11,11 +11,16 @@ from app.deps.auth import get_current_user
 
 router = APIRouter(prefix="/bookmarks", tags=["bookmarks"])
 
+@router.options("/")
+def bookmarks_options():
+    return Response(status_code=200)
+
+
 @router.post("/", response_model=BookmarkRead, status_code=status.HTTP_201_CREATED)
 def create_bookmark(payload: BookmarkCreate, db: Session = Depends(get_session),
                     user_id = Depends(get_current_user),device_id: UUID = Depends(get_device_id)):
     
-   
+    print("ROUTE HIT ✅")
     return BookmarkService.create_bookmark(
         db, user_id, payload, device_id
     )

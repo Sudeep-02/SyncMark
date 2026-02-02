@@ -94,12 +94,22 @@ def login(
             device_id = device_id,
         )
 
+
+        response.set_cookie(
+                key="device_id",
+                value=str(device_id),
+                httponly=True,
+                secure=True,        # set True in production (HTTPS)
+                samesite="none",      # or "none" if cross-site
+                path="/",
+                )
+
         response.set_cookie(
             key="refresh_token",
             value=encoded_refresh_token,
             httponly=True,
-            secure=False,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             path="/",
         )
 
@@ -109,8 +119,8 @@ def login(
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             path="/",
         )
 
@@ -168,12 +178,16 @@ def refresh_token(
             device_id=device_id
         )
 
+
+
+       
+
         response.set_cookie(
             key="refresh_token",
             value=new_refresh_token,
             httponly=True,
-            secure=False, # set True in prod (HTTPS)
-            samesite="lax",
+            secure=True,
+            samesite="none",
             expires=new_meta["exp"],
             path="/",
         )
@@ -184,8 +198,8 @@ def refresh_token(
             key="access_token",
             value=new_access_token,
             httponly=True,
-            secure=False,      # set True in prod
-            samesite="lax",
+            secure=True,
+            samesite="none",
             path="/",
         )
 
@@ -212,9 +226,19 @@ def logout(
         except Exception:
             pass
 
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
+        response.delete_cookie(
+                key="access_token",
+                path="/",
+                samesite="none",
+                secure=True,
+            )
 
+        response.delete_cookie(
+                key="refresh_token",
+                path="/",
+                samesite="none",
+                secure=True,
+            )
     return {"message": "Logged out"}
 
 

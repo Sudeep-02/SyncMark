@@ -4,14 +4,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from app.core.redis import redis_client
 
-EDGE_LIMIT = 250     
+EDGE_LIMIT = 250
 WINDOW_SECONDS = 60
 
 
 class IPGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
 
-        # Always bypass OPTIONS
+        # ✅ Let CORS middleware handle OPTIONS
         if request.method == "OPTIONS":
             return await call_next(request)
 

@@ -32,7 +32,7 @@ export const bookmarkApi = api.injectEndpoints({
     /* GET /bookmarks */
     getBookmarks: builder.query<Bookmark[], GetBookmarksParams | void>({
       query: (params) => ({
-        url: "/bookmarks",
+        url: "/bookmarks/",
         params,
       }),
       providesTags: (result) =>
@@ -50,7 +50,7 @@ export const bookmarkApi = api.injectEndpoints({
     /* POST /bookmarks */
     createBookmark: builder.mutation<Bookmark, CreateBookmarkRequest>({
       query: (payload) => ({
-        url: "/bookmarks",
+        url: "/bookmarks/",
         method: "POST",
         body: payload,
       }),
@@ -63,7 +63,7 @@ export const bookmarkApi = api.injectEndpoints({
       { bookmarkId: string; payload: UpdateBookmarkRequest }
     >({
       query: ({ bookmarkId, payload }) => ({
-        url: `/bookmarks/${bookmarkId}`,
+        url: `/bookmarks/${bookmarkId}/`,
         method: "PATCH",
         body: payload,
       }),
@@ -75,7 +75,7 @@ export const bookmarkApi = api.injectEndpoints({
     /* DELETE /bookmarks/:id */
     deleteBookmark: builder.mutation<void, string>({
       query: (bookmarkId) => ({
-        url: `/bookmarks/${bookmarkId}`,
+        url: `/bookmarks/${bookmarkId}/`,
         method: "DELETE",
       }),
       invalidatesTags: [{ type: "Bookmark", id: "LIST" }],

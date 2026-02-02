@@ -8,13 +8,13 @@ type CreateTagPayload = {
 export const tagApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getTags: builder.query<Tag[], void>({
-      query: () => "/tags",
+      query: () => "/tags/",
       providesTags: ["Tag"],
     }),
 
     createTag: builder.mutation<Tag, CreateTagPayload>({
       query: (payload) => ({
-        url: "/tags",
+        url: "/tags/",
         method: "POST",
         body: payload,
       }),

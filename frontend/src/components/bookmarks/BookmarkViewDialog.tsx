@@ -4,6 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Bookmark } from "@/packages/shared/types/bookmark";
@@ -41,6 +42,10 @@ export function BookmarkViewDialog({
               {bookmark.title || "Untitled bookmark"}
             </span>
           </DialogTitle>
+
+          <DialogDescription className="sr-only">
+            View bookmark details including description and metadata.
+          </DialogDescription>
 
           <a
             href={bookmark.url}

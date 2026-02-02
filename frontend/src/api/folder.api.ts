@@ -9,13 +9,13 @@ type CreateFolderPayload = {
 export const folderApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getFolders: builder.query<Folder[], void>({
-      query: () => "/folders",
+      query: () => "/folders/",
       providesTags: ["Folder"],
     }),
 
     createFolder: builder.mutation<Folder, CreateFolderPayload>({
       query: (payload) => ({
-        url: "/folders",
+        url: "/folders/",
         method: "POST",
         body: payload,
       }),
@@ -30,7 +30,7 @@ export const folderApi = api.injectEndpoints({
       }
     >({
       query: ({ folderId, payload }) => ({
-        url: `/folders/${folderId}`,
+        url: `/folders/${folderId}/`,
         method: "PATCH",
         body: payload,
       }),
@@ -49,7 +49,7 @@ export const folderApi = api.injectEndpoints({
       }
     >({
       query: ({ folderId, mode = "reject" }) => ({
-        url: `/folders/${folderId}`,
+        url: `/folders/${folderId}/`,
         method: "DELETE",
         params: { mode },
       }),

@@ -1,6 +1,6 @@
 from typing import Optional, List
 from uuid import UUID
-from pydantic import BaseModel, Field, HttpUrl, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 import bleach
 
@@ -14,7 +14,7 @@ MAX_DESC = 2048
 class BookmarkBase(BaseModel):
     title: Optional[str] = Field(None, max_length=MAX_TITLE)
     description: Optional[str] = Field(None, max_length=MAX_DESC)
-    favicon_url: Optional[HttpUrl] = None
+    favicon_url: Optional[str] = None
     folder_id: Optional[UUID] = None
     tag_ids: Optional[List[UUID]] = None
     is_featured: Optional[bool] = False
@@ -34,7 +34,7 @@ class BookmarkBase(BaseModel):
 # CREATE
 # ---------------------------------------------------------
 class BookmarkCreate(BookmarkBase):
-    url: HttpUrl  
+    url: str  
 
     model_config = ConfigDict(extra="forbid")
 
@@ -53,9 +53,9 @@ class BookmarkCreate(BookmarkBase):
 # ---------------------------------------------------------
 class BookmarkUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=MAX_TITLE)
-    url: Optional[HttpUrl] = None
+    url: Optional[str] = None
     description: Optional[str] = Field(None, max_length=MAX_DESC)
-    favicon_url: Optional[HttpUrl] = None
+    favicon_url: Optional[str] = None
     folder_id: Optional[UUID] = None
     tag_ids: Optional[List[UUID]] = None
     is_featured: Optional[bool] = None

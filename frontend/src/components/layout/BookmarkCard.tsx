@@ -19,6 +19,7 @@ export default function BookmarkCard({ bookmark, onClick }: BookmarkCardProps) {
       },
     });
   };
+  console.log("favicon_url =", bookmark.favicon_url);
 
   return (
     <div
