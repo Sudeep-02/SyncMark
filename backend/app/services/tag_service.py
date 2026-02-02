@@ -17,6 +17,8 @@ class TagService:
         user_id: UUID,
         name: str,
     ) -> Tag:
+        
+        # print("CREATE TAG CALLED:", name)
         normalized_name = name.strip()
 
         query = select(Tag).where(

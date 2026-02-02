@@ -1,4 +1,3 @@
-# app/routes/bookmarks.py
 from fastapi import APIRouter, Depends, HTTPException, status,Header
 from sqlmodel import Session
 from typing import List, Optional

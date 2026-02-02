@@ -8,6 +8,7 @@ import {
   // FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Link } from "react-router-dom";
 
 import { useLoginMutation } from "../../api/auth.api";
 import { useState } from "react";
@@ -28,9 +29,10 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const submit = async () => {
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const res = await login({ email, password }).unwrap();
+      await login({ email, password }).unwrap();
       navigate("/");
       // console.log("this is from login ");
       // console.log(res);
@@ -39,12 +41,20 @@ export function LoginForm({
       const data = error.data as ApiError | undefined;
       // console.log(data?.detail);
 
-      toast.error(data?.detail ?? "Invalid Credentials");
+      toast.error(
+        Array.isArray(data?.detail)
+          ? data.detail.map((e: any) => e.msg).join(", ")
+          : (data?.detail ?? "Invalid Credentials"),
+      );
     }
   };
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form
+      {...props}
+      className={cn("flex flex-col gap-6", className)}
+      onSubmit={submit}
+    >
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Login to your account</h1>
@@ -80,7 +90,7 @@ export function LoginForm({
           />
         </Field>
         <Field>
-          <Button onClick={submit} disabled={isLoading}>
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? <Spinner /> : "Login"}
           </Button>
         </Field>
@@ -97,9 +107,9 @@ export function LoginForm({
           </Button> */}
           <FieldDescription className="text-center">
             Don&apos;t have an account?{" "}
-            <a href="#" className="underline underline-offset-4">
+            <Link to="/register" className="underline underline-offset-4">
               Sign up
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>

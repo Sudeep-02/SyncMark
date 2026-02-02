@@ -11,7 +11,7 @@ from app.models.device_model import Device
 from app.models.tag_model import BookmarkTagLink
 from app.services.tag_service import TagService
 from app.tasks.bookmark_tasks import fetch_metadata
-
+from app.services.folder_service import validate_user_folder
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -84,10 +84,7 @@ class BookmarkService:
             print(device)
             raise HTTPException(status_code=401, detail="Invalid device")
 
-        if payload.folder_id:
-            folder = db.get(Folder, payload.folder_id)
-            if not folder or folder.user_id != user_id:
-                raise HTTPException(status_code=403, detail="Invalid folder")
+        validate_user_folder(db, user_id, payload.folder_id)
 
         TagService.validate_ids(db, user_id, payload.tag_ids)
 
@@ -106,8 +103,8 @@ class BookmarkService:
 
         # Atomic DB write
         db.add(bookmark)
-        print("validated device.device_id:", device.device_id)
-        print("used last_modified_device:", device_id)
+        # print("validated device.device_id:", device.device_id)
+        # print("used last_modified_device:", device_id)
 
         db.flush() # temporary commit for getting bookmark.id
         

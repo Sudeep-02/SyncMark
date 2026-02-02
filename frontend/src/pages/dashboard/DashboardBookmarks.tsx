@@ -4,9 +4,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 
-import AddBookmarkDialog from "./AddBookmarkDialog";
+import { AddBookmarkDialog } from "@/components/bookmarks/AddBookmarkDialog";
 import BookmarkCard from "@/components/layout/BookmarkCard";
-
+import { FolderBreadcrumbs } from "@/components/bookmarks/FolderBreadcrumbs";
 export default function DashboardBookmarks({
   folderId,
   tagId,
@@ -35,9 +35,13 @@ export default function DashboardBookmarks({
 
   return (
     <div className="flex h-full flex-col rounded-xl border bg-background">
-      <div className="flex items-center justify-between p-4">
-        <h2 className="text-lg font-semibold">Bookmarks</h2>
-        <AddBookmarkDialog folderId={folderId} />
+      <div className="flex flex-col gap-2 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Bookmarks</h2>
+          <AddBookmarkDialog folderId={folderId} />
+        </div>
+
+        <FolderBreadcrumbs folderId={folderId} />
       </div>
 
       <Separator />

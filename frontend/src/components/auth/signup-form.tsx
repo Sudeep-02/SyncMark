@@ -20,7 +20,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import type ApiError from "../../packages/shared/types/error";
+// import type ApiError from "../../packages/shared/types/error";
 
 export function SignupForm({
   className,
@@ -49,9 +49,16 @@ export function SignupForm({
       navigate("/login");
     } catch (err) {
       const error = err as FetchBaseQueryError;
-      const data = error.data as ApiError | undefined;
+      const data = error.data as any;
 
-      toast.error(data?.detail ?? data?.message ?? "Unable to create account");
+      const message = Array.isArray(data?.detail)
+        ? data.detail.map((e: any) => e.msg).join(", ")
+        : (data?.message ?? "Unable to create account");
+
+      toast.error(message);
+      // const data = error.data as ApiError | undefined;
+
+      // toast.error(data?.detail ?? data?.message ?? "Unable to create account");
     }
   };
 
@@ -65,7 +72,7 @@ export function SignupForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={submit}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
@@ -116,7 +123,7 @@ export function SignupForm({
               </Field>
 
               <Field>
-                <Button onClick={submit} disabled={isLoading}>
+                <Button type="submit" disabled={isLoading}>
                   {isLoading ? <Spinner /> : "Create Account"}
                 </Button>
                 <FieldDescription className="text-center">
