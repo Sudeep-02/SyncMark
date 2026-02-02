@@ -121,6 +121,17 @@ export function NavFolders({
             </SidebarMenuButton>
           </SidebarMenuItem>
 
+          {/* RECENT */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => onSelect("recent")}
+              data-active={activeFolderId === "recent" ? "true" : undefined}
+            >
+              <Folder />
+              <span>Recent</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
           {folders.map((folder) => (
             <FolderTree
               key={folder.id}

@@ -15,6 +15,7 @@ type UpdateBookmarkRequest = {
   is_featured?: boolean;
   title?: string;
   url?: string;
+  description?: string;
   folder_id?: string | null;
   tag_ids?: string[];
 };

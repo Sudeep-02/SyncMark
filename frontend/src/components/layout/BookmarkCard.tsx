@@ -1,13 +1,17 @@
 import type { Bookmark } from "@/packages/shared/types/bookmark";
-import { useUpdateBookmarkMutation } from "../../api/bookmark.api";
-
-import { Card, CardHeader } from "@/components/ui/card";
+import { useUpdateBookmarkMutation } from "@/api/bookmark.api";
 import { Button } from "@/components/ui/button";
+import { BookmarkFavicon } from "@/components/bookmarks/BookmarkFavicon";
 
-export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
+export type BookmarkCardProps = {
+  bookmark: Bookmark;
+  onClick?: () => void;
+};
+
+export default function BookmarkCard({ bookmark, onClick }: BookmarkCardProps) {
   const [updateBookmark] = useUpdateBookmarkMutation();
 
-  const handleToggleFeatured = () => {
+  const toggleFeatured = () => {
     updateBookmark({
       bookmarkId: bookmark.id,
       payload: {
@@ -17,21 +21,37 @@ export default function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="truncate font-medium">
-            {bookmark.title || bookmark.url}
-          </h3>
-          <p className="truncate text-sm text-muted-foreground">
-            {bookmark.url}
-          </p>
-        </div>
+    <div
+      onClick={onClick}
+      className="flex items-center justify-between gap-4 px-3 py-3 hover:bg-muted/50 cursor-pointer"
+    >
+      {/* LEFT: favicon + text */}
+      <div className="flex items-center gap-3 min-w-0">
+        <BookmarkFavicon url={bookmark.url} faviconUrl={bookmark.favicon_url} />
 
-        <Button size="icon" variant="ghost" onClick={handleToggleFeatured}>
-          {bookmark.is_featured ? "★" : "☆"}
-        </Button>
-      </CardHeader>
-    </Card>
+        <div className="min-w-0">
+          <div className="truncate font-medium">
+            {bookmark.title || bookmark.url}
+          </div>
+          <div className="truncate text-sm text-muted-foreground">
+            {bookmark.url}
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT: star */}
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleFeatured();
+        }}
+        aria-label="Toggle featured"
+        className="shrink-0"
+      >
+        {bookmark.is_featured ? "★" : "☆"}
+      </Button>
+    </div>
   );
 }
