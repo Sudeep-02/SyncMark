@@ -5,36 +5,35 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  // FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
-
-import { useLoginMutation } from "../../api/auth.api";
+import { toast } from "sonner";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "../ui/spinner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+
+import { useLoginMutation } from "../../api/auth.api";
 import type ApiError from "../../packages/shared/types/error";
-import { toast } from "sonner";
-// import { useGetMeQuery } from "../../api/auth.api";
-// import { useEffect } from "react";
 import { authApi } from "../../api/auth.api";
-import { useAppDispatch } from "@/app/store";
+import { useAppDispatch } from "@/app/hooks";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
-  const [login, { isLoading }] = useLoginMutation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
+  const [login, { isLoading }] = useLoginMutation();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       await login({ email, password }).unwrap();
 

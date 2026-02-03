@@ -10,6 +10,7 @@ export const authApi = api.injectEndpoints({
         body,
         credentials: "include",
       }),
+      invalidatesTags: ["Auth"],
     }),
 
     // ---------- REGISTER ----------
@@ -35,6 +36,7 @@ export const authApi = api.injectEndpoints({
         method: "GET",
         credentials: "include",
       }),
+      providesTags: ["Auth"],
     }),
 
     // ---------- LOGOUT ----------
@@ -44,6 +46,7 @@ export const authApi = api.injectEndpoints({
         method: "POST",
         credentials: "include",
       }),
+      invalidatesTags: ["Auth"],
     }),
   }),
 });

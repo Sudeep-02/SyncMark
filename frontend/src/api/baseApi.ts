@@ -1,5 +1,3 @@
-// src/api/baseApi.ts
-
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getDeviceId } from "@/utils/device";
 
@@ -19,7 +17,7 @@ export const api = createApi({
     },
   }),
 
-  tagTypes: ["Bookmark", "Tag", "Folder"],
+  tagTypes: ["Auth", "Bookmark", "Tag", "Folder"],
 
   endpoints: () => ({}),
 });
