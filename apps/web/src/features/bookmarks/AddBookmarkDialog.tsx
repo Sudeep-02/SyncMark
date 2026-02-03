@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+
+import { toast } from "sonner";
 
 import { FolderCombobox } from "./FolderCombobox";
 import { TagsInput } from "./TagsInput";
@@ -26,26 +29,48 @@ export function AddBookmarkDialog({ folderId }: AddBookmarkDialogProps) {
 
   const [title, setTitle] = React.useState("");
   const [url, setUrl] = React.useState("");
-  const [selectedFolderId, setSelectedFolderId] = React.useState<string>();
+  const [selectedFolderId, setSelectedFolderId] = React.useState<
+    string | undefined
+  >(folderId);
+
   const [tagIds, setTagIds] = React.useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    await createBookmark({
-      title,
-      url,
-      folder_id: selectedFolderId,
-      tag_ids: tagIds,
-      is_featured: false,
-    }).unwrap();
+    try {
+      await createBookmark({
+        title,
+        url,
+        folder_id: selectedFolderId,
+        tag_ids: tagIds,
+        is_featured: false,
+      }).unwrap();
 
-    setTitle("");
-    setUrl("");
-    setSelectedFolderId(undefined);
-    setTagIds([]);
+      // ✅ success
+      setTitle("");
+      setUrl("");
+      setSelectedFolderId(undefined);
+      setTagIds([]);
+      setOpen(false);
 
-    setOpen(false);
+      toast.success("Bookmark saved");
+    } catch (error) {
+      const err = error as FetchBaseQueryError;
+
+      //  duplicate bookmark
+      if (err?.status === 409) {
+        toast("Already bookmarked", {
+          description: "This URL is already saved.",
+        });
+        return;
+      }
+
+      //  fallback error
+      toast.error("Failed to save bookmark", {
+        description: "Something went wrong. Please try again.",
+      });
+    }
   };
 
   return (

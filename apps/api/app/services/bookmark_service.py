@@ -12,10 +12,29 @@ from app.models.tag_model import BookmarkTagLink
 from app.services.tag_service import TagService
 from app.tasks.bookmark_tasks import fetch_metadata
 from app.services.folder_service import validate_user_folder
+from urllib.parse import urlparse, urlunparse
+from sqlalchemy.exc import IntegrityError
+
 
 def utc_now():
     return datetime.now(timezone.utc)
 
+
+def normalize_url(raw_url: str) -> str:
+    parsed = urlparse(raw_url.strip())
+
+    scheme = parsed.scheme.lower()
+    netloc = parsed.netloc.lower()
+    path = parsed.path.rstrip("/")
+
+    return urlunparse((
+        scheme,
+        netloc,
+        path,
+        "",   # params
+        "",   # query (optional: you can keep this if you want)
+        ""    # fragment
+    ))
 
 class BookmarkService:
 
@@ -88,9 +107,30 @@ class BookmarkService:
 
         TagService.validate_ids(db, user_id, payload.tag_ids)
 
+        # print(payload.url)
+        normalized_url = normalize_url(str(payload.url))
+        # print(normalized_url)
+        
+        stmt = select(Bookmark).where(
+            Bookmark.user_id == user_id,
+            Bookmark.url == normalized_url,
+            Bookmark.deleted_at == None  # noqa: E711
+        )
+
+        result = db.exec(stmt)
+        existing = result.first()
+        # print(result)
+        # print(existing)
+        
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail="Bookmark already exists"
+            )
+
         bookmark = Bookmark(
             user_id=user_id,
-            url=str(payload.url),
+            url=str(normalized_url),
             title=payload.title,
             description=payload.description,
             favicon_url=str(payload.favicon_url) if payload.favicon_url else None,
@@ -101,22 +141,28 @@ class BookmarkService:
             updated_at=utc_now(),
         )
 
-        # Atomic DB write
-        db.add(bookmark)
-        # print("validated device.device_id:", device.device_id)
-        # print("used last_modified_device:", device_id)
+        try:
+            # Atomic DB write
+            db.add(bookmark)
+            # print("validated device.device_id:", device.device_id)
+            # print("used last_modified_device:", device_id)
 
-        db.flush() # temporary commit for getting bookmark.id
+            db.flush() # temporary commit for getting bookmark.id
         
 
-        for tag_id in payload.tag_ids or []:
-            db.add(
-                BookmarkTagLink(
-                    bookmark_id=bookmark.id,
-                    tag_id=tag_id,
+            for tag_id in payload.tag_ids or []:
+                db.add(
+                    BookmarkTagLink(
+                        bookmark_id=bookmark.id,
+                        tag_id=tag_id,
+                    )
                 )
-            )
-        db.commit() 
+            db.commit() 
+            
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="Bookmark already exists")
+        
         db.refresh(bookmark)
 
         # Post-commit async task
@@ -185,7 +231,28 @@ class BookmarkService:
         db.refresh(bookmark)
 
         if "url" in update_data:
+            normalized_url = normalize_url(update_data["url"])
+
+            # duplicate check excluding self
+            stmt = select(Bookmark).where(
+                Bookmark.user_id == user_id,
+                Bookmark.url == normalized_url,
+                Bookmark.id != bookmark.id,
+                Bookmark.deleted_at == None  # noqa: E711
+            )
+
+            result = db.exec(stmt)
+            existing = result.first()
+
+            if existing:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Bookmark with this URL already exists"
+                )
+
+            bookmark.url = normalized_url
             fetch_metadata.delay(str(bookmark.id))
+
 
         return bookmark
 

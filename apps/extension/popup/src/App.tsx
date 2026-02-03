@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { PopupHeader } from "./components/PopupHeader";
 import { useAuthStatus } from "./hooks/useAuthStatus";
 import { useFolders } from "./hooks/useFolders";
+import { Toaster, toast } from "sonner";
 
 function App() {
   const { loading: authLoading, isLoggedIn } = useAuthStatus();
@@ -12,40 +13,25 @@ function App() {
   const [saving, setSaving] = useState(false);
 
   const [currentUrl, setCurrentUrl] = useState<string | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
+
+  // 🔥 single terminal state
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "duplicate"
+  >("idle");
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   /* ------------------------------
-     Get active tab on open
+     Get active tab
   ------------------------------- */
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       if (tab?.url) {
         setCurrentUrl(tab.url);
-        setIsSaved(false);
+        setSaveState("idle");
       }
     });
   }, []);
-
-  /* ------------------------------
-     Check if bookmark already exists
-  ------------------------------- */
-  useEffect(() => {
-    if (!currentUrl || !isLoggedIn) return;
-
-    chrome.runtime.sendMessage(
-      {
-        type: "CHECK_BOOKMARK_EXISTS",
-        payload: { url: currentUrl },
-      },
-      (res) => {
-        if (res?.exists) {
-          setIsSaved(true);
-        }
-      },
-    );
-  }, [currentUrl, isLoggedIn]);
 
   /* ------------------------------
      Close dropdown on outside click
@@ -70,12 +56,15 @@ function App() {
   }, [dropdownOpen]);
 
   const openSyncmark = () => {
-    chrome.tabs.create({ url: "https://localhost:8000" });
+    chrome.tabs.create({ url: "http://localhost:5173/login" });
   };
 
+  /* ------------------------------
+     Save bookmark
+  ------------------------------- */
   const handleSave = async () => {
-    if (saving || isSaved) return;
-    setSaving(true);
+    if (saveState !== "idle") return;
+    setSaveState("saving");
 
     try {
       const [tab] = await chrome.tabs.query({
@@ -95,14 +84,34 @@ function App() {
           },
         },
         (res) => {
-          if (res?.success) {
-            setIsSaved(true);
-            setTimeout(() => window.close(), 600);
+          if (!res) {
+            setSaveState("idle");
+            return;
           }
+
+          if (res.ok) {
+            setSaveState("saved");
+            toast.success("Bookmark saved");
+            setTimeout(() => window.close(), 1500);
+            return;
+          }
+
+          if (res.reason === "DUPLICATE") {
+            setSaveState("duplicate");
+            toast("Already saved", {
+              description: "This bookmark already exists.",
+            });
+            setTimeout(() => window.close(), 2800);
+            return;
+          }
+
+          toast.error("Failed to save bookmark");
+          setSaveState("idle");
         },
       );
-    } finally {
-      setSaving(false);
+    } catch {
+      toast.error("Failed to save bookmark");
+      setSaveState("idle");
     }
   };
 
@@ -111,14 +120,28 @@ function App() {
 
   const statusText = authLoading
     ? undefined
-    : isLoggedIn
-      ? isSaved
+    : !isLoggedIn
+      ? "Login required"
+      : saveState === "saved"
         ? "Bookmark saved"
-        : `Saving to: ${selectedFolderName}`
-      : "Login required";
+        : saveState === "duplicate"
+          ? "Duplicate"
+          : `Saving to: ${selectedFolderName}`;
+
+  const buttonLabel =
+    saveState === "saved"
+      ? "✓ Saved"
+      : saveState === "duplicate"
+        ? "Bookmark exists"
+        : saveState === "saving"
+          ? "Saving…"
+          : "Save Bookmark";
 
   return (
     <div className="w-80 max-h-200 flex flex-col bg-[#0f0f11] text-white font-[system-ui]">
+      {/*  REQUIRED FOR SONNER */}
+      {/* <Toaster richColors position="bottom-left" /> */}
+
       <PopupHeader
         title="Syncmark"
         statusText={statusText}
@@ -184,16 +207,16 @@ function App() {
             {/* Save button */}
             <button
               onClick={handleSave}
-              disabled={saving || isSaved}
+              disabled={saveState !== "idle"}
               className={`w-full py-2 border text-sm rounded-md transition ${
-                isSaved
+                saveState === "saved" || saveState === "duplicate"
                   ? "border-green-600 text-green-400 cursor-default"
-                  : saving
+                  : saveState === "saving"
                     ? "border-gray-600 opacity-50"
                     : "border-gray-600 hover:bg-[#1a1a1e]"
               }`}
             >
-              {isSaved ? "✓ Saved" : saving ? "Saving…" : "Save Bookmark"}
+              {buttonLabel}
             </button>
           </>
         )}

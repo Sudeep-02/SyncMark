@@ -11,7 +11,11 @@
     "forceConsistentCasingInFileNames": true,
 
     "types": ["chrome"],
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

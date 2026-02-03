@@ -20,7 +20,7 @@ def bookmarks_options():
 def create_bookmark(payload: BookmarkCreate, db: Session = Depends(get_session),
                     user_id = Depends(get_current_user),device_id: UUID = Depends(get_device_id)):
     
-    print("ROUTE HIT ✅")
+    
     return BookmarkService.create_bookmark(
         db, user_id, payload, device_id
     )
