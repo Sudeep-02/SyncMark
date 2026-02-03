@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PopupHeader } from "./components/PopupHeader";
 import { useAuthStatus } from "./hooks/useAuthStatus";
 import { useFolders } from "./hooks/useFolders";
@@ -9,11 +9,57 @@ function App() {
     const [selectedFolderId, setSelectedFolderId] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [currentUrl, setCurrentUrl] = useState(null);
+    const [isSaved, setIsSaved] = useState(false);
+    const dropdownRef = useRef(null);
+    /* ------------------------------
+       Get active tab on open
+    ------------------------------- */
+    useEffect(() => {
+        chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+            if (tab?.url) {
+                setCurrentUrl(tab.url);
+                setIsSaved(false);
+            }
+        });
+    }, []);
+    /* ------------------------------
+       Check if bookmark already exists
+    ------------------------------- */
+    useEffect(() => {
+        if (!currentUrl || !isLoggedIn)
+            return;
+        chrome.runtime.sendMessage({
+            type: "CHECK_BOOKMARK_EXISTS",
+            payload: { url: currentUrl },
+        }, (res) => {
+            if (res?.exists) {
+                setIsSaved(true);
+            }
+        });
+    }, [currentUrl, isLoggedIn]);
+    /* ------------------------------
+       Close dropdown on outside click
+    ------------------------------- */
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (dropdownRef.current &&
+                !dropdownRef.current.contains(e.target)) {
+                setDropdownOpen(false);
+            }
+        }
+        if (dropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownOpen]);
     const openSyncmark = () => {
         chrome.tabs.create({ url: "https://localhost:8000" });
     };
     const handleSave = async () => {
-        if (saving)
+        if (saving || isSaved)
             return;
         setSaving(true);
         try {
@@ -30,7 +76,12 @@ function App() {
                     title: tab.title,
                     ...(selectedFolderId ? { folder_id: selectedFolderId } : {}),
                 },
-            }, () => { });
+            }, (res) => {
+                if (res?.success) {
+                    setIsSaved(true);
+                    setTimeout(() => window.close(), 600);
+                }
+            });
         }
         finally {
             setSaving(false);
@@ -40,14 +91,20 @@ function App() {
     const statusText = authLoading
         ? undefined
         : isLoggedIn
-            ? `Saving to: ${selectedFolderName}`
+            ? isSaved
+                ? "Bookmark saved"
+                : `Saving to: ${selectedFolderName}`
             : "Login required";
-    return (_jsxs("div", { className: "w-[420px] max-h-[680px] flex flex-col bg-[#0f0f11] text-white font-[system-ui]", children: [_jsx(PopupHeader, { title: "Syncmark", statusText: statusText, heightClass: "h-14" }), _jsx("div", { className: "flex-1 p-3 space-y-3 overflow-y-auto", children: !isLoggedIn ? (_jsx("button", { onClick: openSyncmark, className: "w-full py-2 border border-gray-600 text-sm rounded-md", children: "Open Syncmark" })) : (_jsxs(_Fragment, { children: [_jsxs("div", { className: "relative", children: [_jsx("div", { onClick: () => setDropdownOpen((v) => !v), className: "\n                  w-full\n                  px-2.5\n                  py-1.5\n                  border\n                  border-gray-600\n                  bg-[#1a1a1e]\n                  text-[13px]\n                  rounded-md\n                  cursor-pointer\n                ", children: selectedFolderName }), dropdownOpen && (_jsxs("div", { className: "\n                    absolute\n                    z-10\n                    mt-1\n                    w-full\n                    bg-[#1a1a1e]\n                    border\n                    border-gray-700\n                    rounded-md\n                    max-h-40\n                    overflow-y-auto\n                  ", children: [_jsx("div", { onClick: () => {
+    return (_jsxs("div", { className: "w-80 max-h-200 flex flex-col bg-[#0f0f11] text-white font-[system-ui]", children: [_jsx(PopupHeader, { title: "Syncmark", statusText: statusText, heightClass: "h-14" }), _jsx("div", { className: "flex-1 p-3 space-y-2 overflow-y-auto", children: !isLoggedIn ? (_jsx("button", { onClick: openSyncmark, className: "w-full py-2 border border-gray-600 text-sm rounded-md", children: "Open Syncmark" })) : (_jsxs(_Fragment, { children: [_jsxs("div", { ref: dropdownRef, className: "relative", children: [_jsx("div", { onClick: () => setDropdownOpen((v) => !v), className: "w-full px-2.5 py-1.5 border border-gray-600 bg-[#1a1a1e] text-[13px] rounded-md cursor-pointer hover:bg-[#202025]", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsx("span", { className: "truncate", children: selectedFolderName }), _jsx("span", { className: "text-gray-400", children: "\u25BE" })] }) }), dropdownOpen && (_jsxs("div", { className: "absolute z-10 mt-1 w-full bg-[#1a1a1e] border border-gray-700 rounded-md max-h-40 overflow-y-auto", children: [_jsx("div", { onClick: () => {
                                                 setSelectedFolderId(null);
                                                 setDropdownOpen(false);
-                                            }, className: "\n                      px-2.5\n                      py-1\n                      text-[13px]\n                      hover:bg-[#26262b]\n                      cursor-pointer\n                      rounded-sm\n                    ", children: "No folder (Inbox)" }), loading ? (_jsx("div", { className: "px-2.5 py-1 text-[13px] text-gray-400", children: "Loading\u2026" })) : (folders.map((folder) => (_jsx("div", { onClick: () => {
+                                            }, className: "px-2.5 py-1 text-[13px] hover:bg-[#26262b] cursor-pointer", children: "No folder (Inbox)" }), loading ? (_jsx("div", { className: "px-2.5 py-1 text-[13px] text-gray-400", children: "Loading\u2026" })) : (folders.map((folder) => (_jsx("div", { onClick: () => {
                                                 setSelectedFolderId(folder.id);
                                                 setDropdownOpen(false);
-                                            }, className: "\n                          px-2.5\n                          py-1\n                          text-[13px]\n                          hover:bg-[#26262b]\n                          cursor-pointer\n                          rounded-sm\n                        ", children: folder.name }, folder.id))))] }))] }), _jsx("button", { onClick: handleSave, disabled: saving, className: `w-full py-2 border border-gray-600 text-sm rounded-md ${saving ? "opacity-50" : "hover:bg-[#1a1a1e]"}`, children: saving ? "Saving…" : "Save Bookmark" })] })) })] }));
+                                            }, className: "px-2.5 py-1 text-[13px] hover:bg-[#26262b] cursor-pointer", children: folder.name }, folder.id))))] }))] }), _jsx("button", { onClick: handleSave, disabled: saving || isSaved, className: `w-full py-2 border text-sm rounded-md transition ${isSaved
+                                ? "border-green-600 text-green-400 cursor-default"
+                                : saving
+                                    ? "border-gray-600 opacity-50"
+                                    : "border-gray-600 hover:bg-[#1a1a1e]"}`, children: isSaved ? "✓ Saved" : saving ? "Saving…" : "Save Bookmark" })] })) })] }));
 }
 export default App;

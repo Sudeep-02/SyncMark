@@ -19,7 +19,7 @@ export default function BookmarkCard({ bookmark, onClick }: BookmarkCardProps) {
       },
     });
   };
-  console.log("favicon_url =", bookmark.favicon_url);
+  // console.log("favicon_url =", bookmark.favicon_url);
 
   return (
     <div
@@ -28,7 +28,7 @@ export default function BookmarkCard({ bookmark, onClick }: BookmarkCardProps) {
     >
       {/* LEFT: favicon + text */}
       <div className="flex items-center gap-3 min-w-0">
-        <BookmarkFavicon url={bookmark.url} faviconUrl={bookmark.favicon_url} />
+        <BookmarkFavicon url={bookmark.url} />
 
         <div className="min-w-0">
           <div className="truncate font-medium">

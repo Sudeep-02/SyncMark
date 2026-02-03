@@ -39,12 +39,12 @@ def get_one(folder_id: UUID, db: Session = Depends(get_session), user_id: UUID =
     return get_user_folder(db, user_id, folder_id)
 
 
-@router.patch("/{folder_id}", response_model=FolderRead)
+@router.patch("/{folder_id}/", response_model=FolderRead)
 def patch(folder_id: UUID, payload: FolderUpdate, db: Session = Depends(get_session), user_id: UUID = Depends(get_current_user)):
     return update_folder(db, user_id, folder_id, payload)
 
 
-@router.delete("/{folder_id}")
+@router.delete("/{folder_id}/")
 def remove(folder_id: UUID, mode: str = Query("reject", description="reject|move_children_to_parent|move_to_root|cascade"),
            db: Session = Depends(get_session), user_id: UUID = Depends(get_current_user)):
     return delete_folder(db, user_id, folder_id, mode)

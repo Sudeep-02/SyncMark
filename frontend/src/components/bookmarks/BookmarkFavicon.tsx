@@ -1,39 +1,50 @@
 import { Globe } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Props = {
   url: string;
-  faviconUrl?: string | null;
   size?: number;
 };
 
-function getDomain(url: string) {
+// ✅ explicit allow-list
+const ALLOWED_TLDS = [
+  "com",
+  "org",
+  "net",
+  "io",
+  "dev",
+  "app",
+  "co",
+  "in",
+  "ai",
+  "edu",
+];
+
+function getSafeFavicon(url: string): string | null {
   try {
-    return new URL(url).hostname;
+    const u = new URL(url);
+
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+
+    const parts = u.hostname.split(".");
+    if (parts.length < 2) return null;
+
+    const tld = parts[parts.length - 1].toLowerCase();
+
+    // 🔕 SILENCE SOURCE HERE
+    if (!ALLOWED_TLDS.includes(tld)) return null;
+
+    return `${u.origin}/favicon.ico`;
   } catch {
     return null;
   }
 }
 
-function isBlockedFavicon(url?: string | null) {
-  return !!url && url.includes("gstatic.com/faviconV2");
-}
-
-export function BookmarkFavicon({ url, faviconUrl, size = 16 }: Props) {
-  const domain = getDomain(url);
+export function BookmarkFavicon({ url, size = 16 }: Props) {
   const [failed, setFailed] = useState(false);
 
-  // 🚨 HARD BLOCK legacy Google favicon service
-  const safeFaviconUrl =
-    faviconUrl && !isBlockedFavicon(faviconUrl) ? faviconUrl : null;
+  const src = useMemo(() => getSafeFavicon(url), [url]);
 
-  const src =
-    safeFaviconUrl ||
-    (domain
-      ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64`
-      : null);
-
-  console.log("faviconUrl prop =", src);
   if (!src || failed) {
     return (
       <Globe
@@ -47,10 +58,10 @@ export function BookmarkFavicon({ url, faviconUrl, size = 16 }: Props) {
   return (
     <img
       src={src}
-      alt=""
       width={size}
       height={size}
-      className="shrink-0"
+      alt=""
+      loading="lazy"
       onError={() => setFailed(true)}
     />
   );

@@ -19,6 +19,8 @@ import type ApiError from "../../packages/shared/types/error";
 import { toast } from "sonner";
 // import { useGetMeQuery } from "../../api/auth.api";
 // import { useEffect } from "react";
+import { authApi } from "../../api/auth.api";
+import { useAppDispatch } from "@/app/store";
 
 export function LoginForm({
   className,
@@ -29,10 +31,20 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  const dispatch = useAppDispatch();
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login({ email, password }).unwrap();
+
+      //confirm auth by calling /auth/me
+      await dispatch(
+        authApi.endpoints.getMe.initiate(undefined, {
+          forceRefetch: true,
+        }),
+      );
+
       navigate("/");
       // console.log("this is from login ");
       // console.log(res);

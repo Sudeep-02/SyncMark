@@ -43,8 +43,8 @@ export function SignupForm({
     }
 
     try {
-      const res = await register({ email, username, password_hash }).unwrap();
-      console.log(res);
+      await register({ email, username, password_hash }).unwrap();
+      // console.log(res);
 
       navigate("/login");
     } catch (err) {

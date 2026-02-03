@@ -37,7 +37,7 @@ export function TagsInput({ value, onChange }: Props) {
   const handleCreate = async () => {
     if (!input.trim()) return;
 
-    console.log("CREATING TAG:", input.trim());
+    // console.log("CREATING TAG:", input.trim());
 
     const tag = await createTag({ name: input.trim() }).unwrap();
 
