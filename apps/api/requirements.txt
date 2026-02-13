@@ -36,7 +36,7 @@ mdurl==0.1.2
 packaging==26.0
 passlib==1.7.4
 prompt_toolkit==3.0.52
-psycopg[binary]==3.2.1
+psycopg[binary]==3.2.13
 pycparser==2.22
 pydantic==2.11.7
 pydantic-settings==2.10.1
