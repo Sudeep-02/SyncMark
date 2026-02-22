@@ -24,6 +24,7 @@ class Bookmark(SQLModel, table=True):
     title: Optional[str] = None
     description: Optional[str] = None
     favicon_url: Optional[str] = None
+    cover_image_url: Optional[str] = None
 
     user_id: UUID = Field(foreign_key="user.id", nullable=False)
     folder_id: Optional[UUID] = Field(default=None, foreign_key="folder.id")

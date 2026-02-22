@@ -1,5 +1,5 @@
 from celery import Celery
-from ..core.setting import settings
+from app.core.setting import settings
 
 celery_app = Celery(
     "syncmark",
@@ -14,3 +14,5 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+celery_app.conf.imports = ("app.tasks.bookmark_tasks",)
